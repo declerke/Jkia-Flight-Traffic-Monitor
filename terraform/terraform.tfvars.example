@@ -1,0 +1,9 @@
+project_id           = "your-gcp-project-id"
+region               = "us-central1"
+zone                 = "us-central1-a"
+gcs_bucket_name      = "jkia-flight-data-your-project-id"
+bq_raw_dataset       = "jkia_raw"
+bq_analytics_dataset = "jkia_analytics"
+vm_machine_type      = "e2-micro"
+vm_disk_size_gb      = 30
+service_account_id   = "jkia-pipeline-sa"

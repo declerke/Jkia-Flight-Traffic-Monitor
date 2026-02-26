@@ -1,0 +1,49 @@
+version: 2
+
+sources:
+  - name: jkia_raw
+    description: "Raw aircraft state vectors ingested from OpenSky Network API via Kafka"
+    project: "{{ env_var('BQ_PROJECT_ID') }}"
+    dataset: "{{ env_var('BQ_RAW_DATASET') }}"
+    tables:
+      - name: aircraft_states
+        description: "Raw aircraft ADS-B state vectors around JKIA bounding box"
+        columns:
+          - name: icao24
+            description: "ICAO 24-bit aircraft transponder address (hex)"
+            tests:
+              - not_null
+          - name: callsign
+            description: "Aircraft callsign as reported by transponder"
+          - name: origin_country
+            description: "Country of origin inferred from ICAO24 prefix"
+          - name: time_position
+            description: "Unix timestamp of the last position update"
+          - name: last_contact
+            description: "Unix timestamp of last ADS-B contact"
+          - name: longitude
+            description: "WGS-84 longitude in decimal degrees"
+          - name: latitude
+            description: "WGS-84 latitude in decimal degrees"
+          - name: baro_altitude
+            description: "Barometric altitude in meters"
+          - name: on_ground
+            description: "True if aircraft is on ground per ADS-B surface message"
+          - name: velocity
+            description: "Velocity over ground in m/s"
+          - name: true_track
+            description: "True track in decimal degrees clockwise from north"
+          - name: vertical_rate
+            description: "Vertical rate in m/s (positive = climbing)"
+          - name: geo_altitude
+            description: "Geometric altitude in meters"
+          - name: squawk
+            description: "Four-digit octal transponder squawk code"
+          - name: spi
+            description: "Special purpose indicator flag"
+          - name: position_source
+            description: "Origin of position data (0=ADS-B, 1=ASTERIX, 2=MLAT)"
+          - name: poll_timestamp
+            description: "Unix timestamp when the API was polled"
+          - name: ingested_at
+            description: "UTC timestamp when record was written to Kafka/GCS"

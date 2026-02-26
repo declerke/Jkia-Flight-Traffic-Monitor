@@ -1,0 +1,36 @@
+name: jkia_flight_monitor
+version: "1.0.0"
+config-version: 2
+
+profile: jkia_flight_monitor
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  jkia_flight_monitor:
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: table
+      +schema: analytics
+
+vars:
+  jkia_raw_project: "{{ env_var('BQ_PROJECT_ID', 'your-gcp-project-id') }}"
+  jkia_raw_dataset: "{{ env_var('BQ_RAW_DATASET', 'jkia_raw') }}"
+  holding_altitude_min_m: 1000
+  holding_altitude_max_m: 4500
+  holding_velocity_max_knots: 250
+  jkia_lat: -1.319167
+  jkia_lon: 36.927500
+  proximity_radius_km: 120

@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: stg_aircraft_states
+    description: "Staged, deduplicated, and enriched aircraft state vectors around JKIA"
+    columns:
+      - name: icao24
+        description: "ICAO 24-bit transponder address"
+        tests:
+          - not_null
+      - name: longitude
+        description: "WGS-84 longitude in decimal degrees"
+        tests:
+          - not_null
+      - name: latitude
+        description: "WGS-84 latitude in decimal degrees"
+        tests:
+          - not_null
+      - name: ingested_at
+        description: "Ingestion timestamp"
+        tests:
+          - not_null
+      - name: altitude_band
+        description: "Altitude classification bucket"
+        tests:
+          - accepted_values:
+              values:
+                - "ground"
+                - "approach_departure"
+                - "low_altitude"
+                - "mid_altitude"
+                - "cruise"
+                - "unknown"

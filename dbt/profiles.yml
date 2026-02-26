@@ -1,0 +1,21 @@
+jkia_flight_monitor:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BQ_PROJECT_ID') }}"
+      dataset: jkia_analytics
+      location: US
+      threads: 4
+      timeout_seconds: 300
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"
+    prod:
+      type: bigquery
+      method: service-account
+      project: "{{ env_var('BQ_PROJECT_ID') }}"
+      dataset: jkia_analytics
+      location: US
+      threads: 8
+      timeout_seconds: 600
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS') }}"

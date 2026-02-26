@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: mart_hourly_traffic
+    description: "Hourly JKIA traffic aggregates including aircraft counts, altitude/speed averages, and peak-period flags"
+    columns:
+      - name: traffic_hour
+        tests:
+          - not_null
+      - name: unique_aircraft_count
+        tests:
+          - not_null
+      - name: traffic_period
+        tests:
+          - accepted_values:
+              arguments:
+                values: ["morning_peak", "evening_peak", "off_peak"]
+
+  - name: mart_country_distribution
+    description: "Daily breakdown of aircraft by origin country with traffic share percentages"
+    columns:
+      - name: ingested_date
+        tests:
+          - not_null
+      - name: origin_country
+        tests:
+          - not_null
+      - name: unique_aircraft
+        tests:
+          - not_null
+
+  - name: mart_holding_events
+    description: "Inferred holding pattern events used as delay proxies — aircraft at low-speed, steady altitude near JKIA"
+    columns:
+      - name: icao24
+        tests:
+          - not_null
+      - name: hold_classification
+        tests:
+          - accepted_values:
+              arguments:
+                values:
+                  - "brief_hold"
+                  - "standard_hold"
+                  - "extended_hold"
+                  - "significant_delay_proxy"
+
+  - name: mart_active_aircraft
+    description: "Latest known position for each aircraft seen within the last 10 minutes — powers live map"
+    columns:
+      - name: icao24
+        tests:
+          - not_null
+          - unique
+      - name: last_seen_at
+        tests:
+          - not_null
