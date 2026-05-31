@@ -65,11 +65,9 @@ jkia-flight-traffic-monitor/
 
 ### 1. Environment & Infrastructure
 ```bash
-git clone [https://github.com/declerke/Jkia-Flight-Traffic-Monitor.git](https://github.com/declerke/Jkia-Flight-Traffic-Monitor.git)
+git clone https://github.com/declerke/Jkia-Flight-Traffic-Monitor.git
 cd jkia-flight-traffic-monitor
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+cp .env.example .env   # fill in GCS_BUCKET_NAME, BQ_PROJECT_ID, OpenSky credentials
 ```
 
 ### 2. Deploy Containerized Stack
@@ -88,8 +86,39 @@ docker-compose run airflow-init
 
 ---
 
+## 🧠 Key Design Decisions
+
+- **Kafka as buffer:** OpenSky API is rate-limited and occasionally unavailable. Kafka decouples the 1-minute poller from GCS writes — if GCS has a transient timeout, messages stay in the queue and are consumed on the next cycle without data loss.
+- **Hive-style GCS partitioning:** Parquet files land under `year/month/day/hour/` so BigQuery external tables and `LOAD DATA` jobs can prune partitions efficiently, keeping query costs predictable as the data lake grows.
+- **dbt `build` over `run + test`:** The DAG calls `dbt build --select staging+ marts`, which runs models and tests together in dependency order. A test failure halts the DAG before bad data reaches downstream marts.
+- **Holding pattern proxy:** True ATC holding data is unavailable from ADS-B. The `mart_holding_events` model approximates holding patterns using altitude (1,000–4,500 m), speed (<250 kts), and duration thresholds — a pragmatic domain heuristic that produces interpretable delay signals.
+- **`max_active_runs=1` on the live DAG:** The 1-minute schedule can overlap if a run takes >60 seconds. Setting `max_active_runs=1` prevents concurrent GCS writes to the same partition.
+
+---
+
+## 🗄️ dbt Layer Detail
+
+```
+jkia_raw.aircraft_states         ← BigQuery source (GCS Parquet → BQ load)
+        │
+analytics.stg_aircraft_states    ← deduplication, coordinate validation, altitude_band classification
+        │
+        ├── analytics.mart_hourly_traffic      ← hourly aircraft counts, peak-period flags (morning/evening/off-peak)
+        ├── analytics.mart_country_distribution ← daily aircraft by origin country with traffic share %
+        ├── analytics.mart_holding_events      ← inferred holding events: brief/standard/extended/significant
+        └── analytics.mart_active_aircraft     ← latest known position per aircraft (last 10 min, powers live map)
+```
+
+22 dbt tests across source, staging, and mart layers — `not_null`, `unique`, and `accepted_values` constraints on all critical fields.
+
+---
+
 ## 🎓 Skills Demonstrated
-* **Modern Data Stack (MDS):** Orchestrating complex ELT workflows with Airflow and dbt.
-* **Stream Processing:** Handling high-frequency API data with Kafka to ensure system durability.
-* **Cloud Architecture:** Managing partitioned data lakes and cost-optimized BigQuery schemas.
-* **Aviation Domain Logic:** Transforming raw geographic coordinates into meaningful "Holding Event" metrics.
+
+- **Stream processing** — Kafka producer/consumer pipeline handling 1-minute ADS-B polling cycles with retry and exponential backoff
+- **Cloud-native ELT** — GCS Parquet data lake → BigQuery → dbt transformation chain on GCP
+- **dbt modelling** — staging deduplication, window functions, domain heuristics encoded as SQL mart logic, 22/22 tests passing
+- **Apache Airflow orchestration** — 4-task DAG with `max_active_runs=1`, retry logic, XCom for inter-task metrics, separate backfill DAG
+- **Kafka resilience** — buffer maintained data flow during transient GCS API timeouts; self-healing consumer with idle-cycle detection
+- **Aviation domain** — ADS-B state vector processing, holding pattern classification, peak traffic wave detection (04:00–10:00 UTC / 14:00–22:00 UTC)
+- **Containerised infrastructure** — multi-service Docker Compose (Airflow, Kafka, Zookeeper, Postgres) with health checks and dependency ordering

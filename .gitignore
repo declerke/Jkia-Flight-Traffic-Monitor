@@ -1,6 +1,7 @@
 gcp-sa-key.json
 credentials.json
 gcp.json
+dbt/.user.yml
 dirlist.txt
 credentials/
 .env
